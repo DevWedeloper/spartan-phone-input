@@ -22,6 +22,7 @@
     "@angular/platform-server": "^19.2.0",
     "@angular/router": "^19.2.0",
     "@angular/ssr": "^19.2.9",
+    "@spartan-ng/brain": "^0.0.1-alpha.447",
     "@tailwindcss/postcss": "^4.1.4",
     "express": "^4.18.2",
     "postcss": "^8.5.3",
