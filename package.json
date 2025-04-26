@@ -27,6 +27,7 @@
     "@maskito/kit": "^3.7.2",
     "@maskito/phone": "^3.7.2",
     "@ng-icons/core": "^29.10.0",
+    "@ng-icons/lucide": "^31.3.0",
     "@spartan-ng/brain": "^0.0.1-alpha.447",
     "@tailwindcss/postcss": "^4.1.4",
     "class-variance-authority": "^0.7.0",
