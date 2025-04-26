@@ -37,7 +37,7 @@ export const inputVariants = cva(
     },
   },
 );
-type InputVariants = VariantProps;
+type InputVariants = VariantProps<typeof inputVariants>;
 
 @Directive({
   selector: '[hlmInput]',
