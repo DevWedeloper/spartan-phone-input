@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spartan Phone Input</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="spartan.svg" />
+    <script>
+      if (localStorage.theme !== 'default') {
+        if (document && document.body) {
+          document.body.classList.add('theme-' + localStorage.theme);
+        }
+      }
+      if (localStorage.darkMode === 'dark') {
+        if (document && document.documentElement) {
+          document.documentElement.classList.add('dark');
+        }
+      } else if (localStorage.darkMode === 'light') {
+        if (document && document.documentElement) {
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem('darkMode', 'light');
+        }
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        localStorage.setItem('darkMode', 'system');
+        if (document && document.documentElement) {
+          document.documentElement.classList.add('dark');
+        }
+      } else {
+        if (document && document.documentElement) {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-background text-foreground h-full">
+    <app-root></app-root>
+  </body>
+</html>
