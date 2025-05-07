@@ -21,7 +21,7 @@
     "@angular/platform-browser-dynamic": "^19.2.9",
     "@angular/platform-server": "^19.2.9",
     "@angular/router": "^19.2.9",
-    "@angular/ssr": "^19.2.9",
+    "@angular/ssr": "^19.2.10",
     "@maskito/angular": "^3.7.2",
     "@maskito/core": "^3.7.2",
     "@maskito/kit": "^3.7.2",
@@ -42,11 +42,11 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.2.9",
+    "@angular-devkit/build-angular": "^19.2.10",
     "@angular-eslint/eslint-plugin": "^19.3.0",
     "@angular-eslint/eslint-plugin-template": "^19.3.0",
     "@angular-eslint/template-parser": "^19.3.0",
-    "@angular/cli": "^19.2.9",
+    "@angular/cli": "^19.2.10",
     "@angular/compiler-cli": "^19.2.9",
     "@spartan-ng/cli": "^0.0.1-alpha.447",
     "@types/express": "^4.17.17",
