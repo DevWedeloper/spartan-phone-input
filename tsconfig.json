@@ -15,6 +15,11 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
+    "types": [
+      "node", 
+      "jest", 
+      "@testing-library/jest-dom"
+    ],
     "paths": {
       "@spartan-ng/ui-button-helm": [
         "./libs/ui/ui-button-helm/src/index.ts"
