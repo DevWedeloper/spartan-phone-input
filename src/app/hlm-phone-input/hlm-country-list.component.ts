@@ -18,6 +18,7 @@ import {
 } from 'libphonenumber-js';
 import { NgScrollbarModule } from 'ngx-scrollbar';
 import { HlmCountrySelectOptionComponent } from './hlm-country-select-option.component';
+import { State } from './hlm-phone-input.component';
 
 @Component({
   selector: 'hlm-country-list',
@@ -54,12 +55,13 @@ import { HlmCountrySelectOptionComponent } from './hlm-country-select-option.com
                 hlm-command-item
                 [value]="country.countryName"
                 (selected)="onSelectedCountryCode(country.countryCode)"
+                [attr.data-testid]="country.countryName"
               >
                 <hlm-country-select-option
                   [countryCode]="country.countryCode"
                   [countryName]="country.countryName"
                   [countryCallingCode]="country.countryCallingCode"
-                  [selectedCountryCode]="selectedCountryCode()"
+                  [selectedCountryCode]="state()?.countryCode"
                 />
               </button>
             }
@@ -75,7 +77,7 @@ import { HlmCountrySelectOptionComponent } from './hlm-country-select-option.com
 export class HlmCountryListComponent {
   private readonly _brnDialogRef = inject(BrnDialogRef);
 
-  selectedCountryCode = model<CountryCode | undefined>(undefined);
+  state = model<State | undefined>(undefined);
 
   protected countries = getCountries()
     .map((country) => ({
@@ -91,7 +93,12 @@ export class HlmCountryListComponent {
     );
 
   protected onSelectedCountryCode(countryCode: CountryCode): void {
-    this.selectedCountryCode.set(countryCode);
+    if (this.state()?.countryCode !== countryCode) {
+      this.state.set({
+        status: 'implicit',
+        countryCode,
+      });
+    }
     this._brnDialogRef.close();
   }
 }

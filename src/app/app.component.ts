@@ -1,4 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HlmPhoneInputComponent } from './hlm-phone-input/hlm-phone-input.component';
 
@@ -8,7 +12,10 @@ import { HlmPhoneInputComponent } from './hlm-phone-input/hlm-phone-input.compon
   template: `
     <div class="flex h-screen items-center justify-center">
       <form [formGroup]="form">
-        <hlm-phone-input formControlName="phoneNumber" />
+        <hlm-phone-input
+          formControlName="phoneNumber"
+          initialCountryCode="US"
+        />
       </form>
     </div>
   `,
@@ -22,6 +29,6 @@ export class AppComponent {
   });
 
   constructor() {
-    this.form.valueChanges.subscribe(console.log);
+    // this.form.valueChanges.subscribe(console.log);
   }
 }

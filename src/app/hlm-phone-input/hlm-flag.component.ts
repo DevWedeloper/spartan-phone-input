@@ -13,6 +13,7 @@ import { CountryCode } from 'libphonenumber-js';
   selector: 'hlm-flag',
   template: `
     <span
+      data-testid="country-code-trigger-flag"
       class="bg-foreground/20 flex h-4 w-6 overflow-hidden rounded-sm [&_svg]:size-full"
       [innerHTML]="flag()"
     ></span>
@@ -25,10 +26,15 @@ export class HlmFlagComponent {
   countryCode = input.required<CountryCode | undefined>();
 
   protected flag = computed(() => {
-    const countryCode = this.countryCode();
+    const code = this.countryCode();
+    if (!code) {
+      return null;
+    }
 
-    return countryCode
-      ? this.sanitizer.bypassSecurityTrustHtml(flags[countryCode])
-      : null;
+    const titleTag = `<title>${code}</title>`;
+
+    const svg = flags[code].replace(/<svg([^>]*)>/, `<svg$1>${titleTag}`);
+
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
   });
 }

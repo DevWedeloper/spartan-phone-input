@@ -1,11 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
+  input,
   linkedSignal,
-  model,
   signal,
 } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronsUpDown } from '@ng-icons/lucide';
@@ -17,10 +19,24 @@ import {
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmIconDirective } from '@spartan-ng/ui-icon-helm';
 import { HlmPopoverContentDirective } from '@spartan-ng/ui-popover-helm';
-import { CountryCode } from 'libphonenumber-js';
+import { CountryCode, getCountryCallingCode } from 'libphonenumber-js';
+import { filter, take } from 'rxjs';
 import { HlmCountryListComponent } from './hlm-country-list.component';
 import { HlmFlagComponent } from './hlm-flag.component';
 import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
+
+type ImplicitState = {
+  status: 'implicit';
+  countryCode: CountryCode;
+};
+
+type ExplicitState = {
+  status: 'explicit';
+  countryCode: CountryCode | undefined;
+};
+
+export type Status = State['status'];
+export type State = ImplicitState | ExplicitState;
 
 @Component({
   selector: 'hlm-phone-input',
@@ -50,13 +66,16 @@ import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
   template: `
     <brn-popover sideOffset="5">
       <button
+        data-testid="country-code-trigger"
         variant="outline"
         brnPopoverTrigger
         hlmBtn
         class="flex gap-1 rounded-s-lg rounded-e-none border-r-0 px-3 focus:z-10"
         [disabled]="disabled()"
+        type="button"
+        (click)="onTouched()"
       >
-        <hlm-flag [countryCode]="selectedCountry()" />
+        <hlm-flag [countryCode]="state()?.countryCode" />
         <ng-icon
           hlm
           size="sm"
@@ -66,45 +85,67 @@ import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
         <span class="sr-only">Select country calling code</span>
       </button>
       <div hlmPopoverContent class="w-[300px] p-0" *brnPopoverContent="let ctx">
-        <hlm-country-list [(selectedCountryCode)]="selectedCountry" />
+        <hlm-country-list [(state)]="state" />
       </div>
     </brn-popover>
     <hlm-phone-number
       [(phoneNumber)]="phoneNumber"
+      [status]="state()?.status"
+      [countryCode]="state()?.countryCode"
       [disabled]="disabled()"
-      (selectedCountryChange)="selectedCountry.set($event)"
+      (derivedPhoneStateChange)="state.set($event)"
+      (focusChange)="onTouched()"
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HlmPhoneInputComponent implements ControlValueAccessor {
-  protected selectedCountry = model<CountryCode | undefined>(undefined);
+  initialCountryCode = input<CountryCode>();
 
-  protected phoneNumber = linkedSignal<
-    CountryCode | undefined,
-    string | undefined
-  >({
-    source: this.selectedCountry,
-    // If we already had a phone value and its country changed, reset.
+  initialCountryCode$ = toObservable(this.initialCountryCode).pipe(
+    filter(Boolean),
+    take(1),
+  );
+
+  private firstValidCountryCode = toSignal(this.initialCountryCode$);
+
+  protected state = linkedSignal<CountryCode | undefined, State | undefined>({
+    source: this.firstValidCountryCode,
+    computation: (value) =>
+      value ? { status: 'implicit', countryCode: value } : undefined,
+  });
+
+  protected phoneNumber = linkedSignal<State | undefined, string | undefined>({
+    source: this.state,
     computation: (current, previous) =>
-      previous && previous.source && previous.source !== current
+      previous?.source?.status === 'explicit' && current?.status === 'implicit'
         ? undefined
         : previous?.value,
   });
 
   protected disabled = signal(false);
 
+  private parsedPhoneNumber = computed(() => {
+    const state = this.state();
+    const raw = this.phoneNumber() || '';
+
+    // Remove all spaces (\s) and dashes (-)
+    const cleaned = raw.replace(/[\s-]/g, '');
+
+    if (state && state.status === 'implicit') {
+      const countryCallingCode = getCountryCallingCode(state.countryCode);
+      return `+${countryCallingCode}${cleaned}`;
+    } else {
+      return cleaned;
+    }
+  });
+
   constructor() {
-    effect(() => {
-      const raw = this.phoneNumber();
-      // Remove all spaces (\s) and dashes (-)
-      const cleaned = raw ? raw.replace(/[\s-]/g, '') : undefined;
-      this.onChange(cleaned);
-    });
+    effect(() => this.onChange(this.parsedPhoneNumber()));
   }
 
   private onChange: (phoneNumber: string | undefined) => void = () => {};
-  private onTouched: () => void = () => {};
+  protected onTouched: () => void = () => {};
 
   writeValue(value: string | undefined): void {
     this.phoneNumber.set(value);
