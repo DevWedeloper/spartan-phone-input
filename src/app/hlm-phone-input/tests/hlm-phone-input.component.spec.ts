@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import {
   DisabledInputTestComponent,
+  InitialValueWithDifferentCountryTestComponent,
   WithInitialCountryCodeTestComponent,
   WithoutInitialValueTestComponent,
   WithValidInitialValueTestComponent,
@@ -50,6 +51,20 @@ describe('HlmPhoneNumberComponent', () => {
 
   const setupWithInitialCountryCode = async () => {
     const { fixture } = await render(WithInitialCountryCodeTestComponent);
+
+    return {
+      user: userEvent.setup(),
+      fixture,
+      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
+      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
+      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
+    };
+  };
+
+  const setupInitialValueWithDifferentCountry = async () => {
+    const { fixture } = await render(
+      InitialValueWithDifferentCountryTestComponent,
+    );
 
     return {
       user: userEvent.setup(),
@@ -289,8 +304,14 @@ describe('HlmPhoneNumberComponent', () => {
       expect(cmpInstance.form.value.phoneNumber).toBe('+1');
     });
 
-    // TODO
-    it('prefers form value (country code) over default flag if both are present', async () => {});
+    it('prefers form value (country code) over default flag if both are present', async () => {
+      const { fixture, countryCodeTrigger } =
+        await setupInitialValueWithDifferentCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+12125554567');
+    });
 
     it('sets flag based on initial form value', async () => {
       const { fixture, countryCodeTrigger } =
