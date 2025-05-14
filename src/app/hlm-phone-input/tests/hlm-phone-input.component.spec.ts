@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import {
   DisabledInputTestComponent,
   InitialValueWithDifferentCountryTestComponent,
+  InvalidInitialValueWithCountryTestComponent,
   WithInitialCountryCodeTestComponent,
   WithoutInitialValueTestComponent,
   WithValidInitialValueTestComponent,
@@ -64,6 +65,20 @@ describe('HlmPhoneNumberComponent', () => {
   const setupInitialValueWithDifferentCountry = async () => {
     const { fixture } = await render(
       InitialValueWithDifferentCountryTestComponent,
+    );
+
+    return {
+      user: userEvent.setup(),
+      fixture,
+      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
+      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
+      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
+    };
+  };
+
+  const setupInvalidInitialValueWithCountry = async () => {
+    const { fixture } = await render(
+      InvalidInitialValueWithCountryTestComponent,
     );
 
     return {
@@ -301,6 +316,15 @@ describe('HlmPhoneNumberComponent', () => {
       const cmpInstance = fixture.componentInstance;
 
       expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
+
+    it('ignores default country code if form value is present, even if invalid', async () => {
+      const { fixture, countryCodeTriggerFlag } =
+        await setupInvalidInitialValueWithCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(countryCodeTriggerFlag.querySelector('svg')).toBeNull();
       expect(cmpInstance.form.value.phoneNumber).toBe('+1');
     });
 

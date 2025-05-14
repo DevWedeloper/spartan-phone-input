@@ -82,3 +82,20 @@ export class InitialValueWithDifferentCountryTestComponent {
     phoneNumber: new FormControl<string>('+12125554567'),
   });
 }
+
+@Component({
+  imports: [ReactiveFormsModule, HlmPhoneInputComponent],
+  template: `
+    <form [formGroup]="form">
+      <hlm-phone-input
+        formControlName="phoneNumber"
+        [initialCountryCode]="'US'"
+      />
+    </form>
+  `,
+})
+export class InvalidInitialValueWithCountryTestComponent {
+  form = new FormGroup({
+    phoneNumber: new FormControl<string>('+1'),
+  });
+}

@@ -181,7 +181,7 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
     } as State),
     scan((previous, current) => {
       // Prioritize country code of the initial form value over the initial country code input
-      if (current.action === 'initial' && previous.countryCode !== undefined) {
+      if (current.action === 'initial' && previous.phoneNumber) {
         return previous;
       }
 
