@@ -11,9 +11,7 @@ const defaultConfig: HlmIconConfig = {
 
 const HlmIconConfigToken = new InjectionToken<HlmIconConfig>('HlmIconConfig');
 
-export function provideHlmIconConfig(
-  config: Partial<HlmIconConfig>,
-): ValueProvider {
+export function provideHlmIconConfig(config: Partial): ValueProvider {
   return {
     provide: HlmIconConfigToken,
     useValue: { ...defaultConfig, ...config },

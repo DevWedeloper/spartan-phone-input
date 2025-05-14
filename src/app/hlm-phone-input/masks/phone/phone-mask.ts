@@ -16,7 +16,7 @@ export function maskitoPhoneOptionsGenerator({
   strict?: boolean;
   separator?: string;
   countryCode?: CountryCode;
-}): Required<MaskitoOptions> {
+}): Required {
   return strict && countryIsoCode
     ? maskitoPhoneStrictOptionsGenerator({
         countryIsoCode,

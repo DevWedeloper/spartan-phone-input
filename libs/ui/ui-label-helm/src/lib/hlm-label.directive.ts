@@ -27,7 +27,7 @@ export const labelVariants = cva(
     },
   },
 );
-export type LabelVariants = VariantProps<typeof labelVariants>;
+export type LabelVariants = VariantProps;
 
 @Directive({
   selector: '[hlmLabel]',

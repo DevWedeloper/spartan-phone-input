@@ -8,7 +8,7 @@ export type IconSize =
   | 'lg'
   | 'xl'
   | 'none'
-  | (Record<never, never> & string);
+  | (Record & string);
 
 @Directive({
   selector: 'ng-icon[hlm]',

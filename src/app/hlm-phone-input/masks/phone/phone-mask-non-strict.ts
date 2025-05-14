@@ -19,7 +19,7 @@ export function maskitoPhoneNonStrictOptionsGenerator({
   metadata: MetadataJson;
   separator?: string;
   countryCode?: CountryCode;
-}): Required<MaskitoOptions> {
+}): Required {
   const formatter = new AsYouType(defaultIsoCode, metadata);
   let currentTemplate = '';
   let currentPhoneLength = 0;
