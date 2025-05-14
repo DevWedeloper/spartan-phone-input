@@ -133,9 +133,7 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
     this.setCountryCode$.pipe(
       map((countryCode) => ({ countryCode, action: 'select' as const })),
     ),
-  );
-
-  private setCountryCodeStream$ = this.countryCode$.pipe(
+  ).pipe(
     map(({ countryCode, action }) => ({
       status: 'implicit' as const,
       countryCode,
@@ -146,7 +144,7 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
     ),
   );
 
-  private setPhoneNumberStream$ = this.setPhoneNumber$.pipe(
+  private phoneNumber$ = this.setPhoneNumber$.pipe(
     map((phoneNumber) => {
       const countryCode = maskitoGetCountryFromNumber(
         phoneNumber || '',
@@ -169,10 +167,7 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
     ),
   );
 
-  private state$ = merge(
-    this.setCountryCodeStream$,
-    this.setPhoneNumberStream$,
-  ).pipe(
+  private state$ = merge(this.countryCode$, this.phoneNumber$).pipe(
     scan((state, partial) => ({ ...state, ...partial }), {
       status: 'explicit',
       countryCode: undefined,
