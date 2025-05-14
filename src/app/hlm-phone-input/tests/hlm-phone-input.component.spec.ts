@@ -237,6 +237,40 @@ describe('HlmPhoneNumberComponent', () => {
 
       expect(cmpInstance.onSubmit).not.toHaveBeenCalled();
     });
+
+    it('updates form value and flag when a different country is selected', async () => {
+      const { user, fixture, countryCodeTrigger } =
+        await setupWithValidInitialValue();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+12125554567');
+
+      // open
+      await user.click(countryCodeTrigger);
+
+      await user.click(screen.getByTestId('Canada'));
+
+      expect(within(countryCodeTrigger).getByTitle('CA')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
+
+    it('preserves form value and flag when the same country is reselected', async () => {
+      const { user, fixture, countryCodeTrigger } =
+        await setupWithValidInitialValue();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+12125554567');
+
+      // open
+      await user.click(countryCodeTrigger);
+
+      await user.click(screen.getByTestId('United States'));
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+12125554567');
+    });
   });
 
   describe('initial render behavior', () => {
