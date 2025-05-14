@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   input,
-  linkedSignal,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronsUpDown } from '@ng-icons/lucide';
@@ -20,23 +22,32 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmIconDirective } from '@spartan-ng/ui-icon-helm';
 import { HlmPopoverContentDirective } from '@spartan-ng/ui-popover-helm';
 import { CountryCode, getCountryCallingCode } from 'libphonenumber-js';
-import { filter, take } from 'rxjs';
+import metadata from 'libphonenumber-js/min/metadata';
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  merge,
+  scan,
+  share,
+  Subject,
+  take,
+} from 'rxjs';
 import { HlmCountryListComponent } from './hlm-country-list.component';
 import { HlmFlagComponent } from './hlm-flag.component';
 import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
+import { maskitoGetCountryFromNumber } from './masks';
 
-type ImplicitState = {
-  status: 'implicit';
-  countryCode: CountryCode;
+type Action = 'initial' | 'select' | 'type';
+
+export type Status = 'implicit' | 'explicit';
+
+export type State = {
+  status: Status;
+  countryCode?: CountryCode;
+  phoneNumber?: string;
+  action?: Action;
 };
-
-type ExplicitState = {
-  status: 'explicit';
-  countryCode: CountryCode | undefined;
-};
-
-export type Status = State['status'];
-export type State = ImplicitState | ExplicitState;
 
 @Component({
   selector: 'hlm-phone-input',
@@ -75,7 +86,7 @@ export type State = ImplicitState | ExplicitState;
         type="button"
         (click)="onTouched()"
       >
-        <hlm-flag [countryCode]="state()?.countryCode" />
+        <hlm-flag [countryCode]="countryCode()" />
         <ng-icon
           hlm
           size="sm"
@@ -85,15 +96,18 @@ export type State = ImplicitState | ExplicitState;
         <span class="sr-only">Select country calling code</span>
       </button>
       <div hlmPopoverContent class="w-[300px] p-0" *brnPopoverContent="let ctx">
-        <hlm-country-list [(state)]="state" />
+        <hlm-country-list
+          [countryCode]="countryCode()"
+          (countryCodeChange)="setCountryCode($event)"
+        />
       </div>
     </brn-popover>
     <hlm-phone-number
-      [(phoneNumber)]="phoneNumber"
-      [status]="state()?.status"
-      [countryCode]="state()?.countryCode"
+      [phoneNumber]="phoneNumber()"
+      [status]="status()"
+      [countryCode]="countryCode()"
       [disabled]="disabled()"
-      (derivedPhoneStateChange)="state.set($event)"
+      (phoneNumberChange)="setPhoneNumber($event)"
       (focusChange)="onTouched()"
     />
   `,
@@ -102,53 +116,132 @@ export type State = ImplicitState | ExplicitState;
 export class HlmPhoneInputComponent implements ControlValueAccessor {
   initialCountryCode = input<CountryCode>();
 
-  initialCountryCode$ = toObservable(this.initialCountryCode).pipe(
+  private initialCountryCode$ = toObservable(this.initialCountryCode).pipe(
     filter(Boolean),
     take(1),
   );
 
-  private firstValidCountryCode = toSignal(this.initialCountryCode$);
-
-  protected state = linkedSignal<CountryCode | undefined, State | undefined>({
-    source: this.firstValidCountryCode,
-    computation: (value) =>
-      value ? { status: 'implicit', countryCode: value } : undefined,
-  });
-
-  protected phoneNumber = linkedSignal<State | undefined, string | undefined>({
-    source: this.state,
-    computation: (current, previous) =>
-      previous?.source?.status === 'explicit' && current?.status === 'implicit'
-        ? undefined
-        : previous?.value,
-  });
-
   protected disabled = signal(false);
 
-  private parsedPhoneNumber = computed(() => {
-    const state = this.state();
-    const raw = this.phoneNumber() || '';
+  private setCountryCode$ = new Subject<CountryCode | undefined>();
+  private setPhoneNumber$ = new Subject<string | undefined>();
 
-    // Remove all spaces (\s) and dashes (-)
-    const cleaned = raw.replace(/[\s-]/g, '');
+  private countryCode$ = merge(
+    this.initialCountryCode$.pipe(
+      map((countryCode) => ({ countryCode, action: 'initial' as const })),
+    ),
+    this.setCountryCode$.pipe(
+      map((countryCode) => ({ countryCode, action: 'select' as const })),
+    ),
+  );
 
-    if (state && state.status === 'implicit') {
-      const countryCallingCode = getCountryCallingCode(state.countryCode);
-      return `+${countryCallingCode}${cleaned}`;
-    } else {
-      return cleaned;
-    }
+  private setCountryCodeStream$ = this.countryCode$.pipe(
+    map(({ countryCode, action }) => ({
+      status: 'implicit' as const,
+      countryCode,
+      action,
+    })),
+    distinctUntilChanged(
+      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+    ),
+  );
+
+  private setPhoneNumberStream$ = this.setPhoneNumber$.pipe(
+    map((phoneNumber) => {
+      const countryCode = maskitoGetCountryFromNumber(
+        phoneNumber || '',
+        metadata,
+      );
+
+      if (phoneNumber?.startsWith('+') || phoneNumber === '') {
+        return {
+          status: 'explicit' as const,
+          countryCode,
+          phoneNumber: phoneNumber as string | undefined,
+          action: 'type' as const,
+        };
+      }
+
+      return { phoneNumber, action: 'type' as const };
+    }),
+    distinctUntilChanged(
+      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+    ),
+  );
+
+  private state$ = merge(
+    this.setCountryCodeStream$,
+    this.setPhoneNumberStream$,
+  ).pipe(
+    scan((state, partial) => ({ ...state, ...partial }), {
+      status: 'explicit',
+      countryCode: undefined,
+      phoneNumber: undefined,
+      action: 'initial',
+    } as State),
+    scan((previous, current) => {
+      // Prioritize country code of the initial form value over the initial country code input
+      if (current.action === 'initial' && previous.countryCode !== undefined) {
+        return previous;
+      }
+
+      // Reset the phone number when a country code is selected
+      if (previous.status === 'explicit' && current.status === 'implicit') {
+        return {
+          status: current.status,
+          countryCode: current.countryCode,
+          phoneNumber: undefined,
+        };
+      }
+
+      return current;
+    }),
+    share(),
+  );
+
+  private parsedPhoneNumber$ = this.state$
+    .pipe(
+      map(({ status, countryCode, phoneNumber }) => {
+        const raw = phoneNumber || '';
+
+        // Remove all spaces (\s) and dashes (-)
+        const cleaned = raw.replace(/[\s-]/g, '');
+
+        if (status === 'implicit') {
+          const countryCallingCode = countryCode
+            ? getCountryCallingCode(countryCode)
+            : '';
+          return `+${countryCallingCode}${cleaned}`;
+        } else {
+          return cleaned;
+        }
+      }),
+    )
+    .pipe(distinctUntilChanged());
+
+  private state = toSignal(this.state$, {
+    initialValue: {
+      status: 'explicit',
+      countryCode: undefined,
+      phoneNumber: undefined,
+    },
   });
 
+  protected status = computed(() => this.state().status);
+  protected countryCode = computed(() => this.state().countryCode);
+  protected phoneNumber = computed(() => this.state().phoneNumber);
+
   constructor() {
-    effect(() => this.onChange(this.parsedPhoneNumber()));
+    this.parsedPhoneNumber$
+      .pipe(takeUntilDestroyed())
+      .subscribe((value) => this.onChange(value));
   }
 
   private onChange: (phoneNumber: string | undefined) => void = () => {};
   protected onTouched: () => void = () => {};
 
   writeValue(value: string | undefined): void {
-    this.phoneNumber.set(value);
+    this.setPhoneNumber(value);
   }
 
   registerOnChange(fn: (phoneNumber: string | undefined) => void): void {
@@ -161,5 +254,16 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
 
   setDisabledState(isDisabled: boolean): void {
     this.disabled.set(isDisabled);
+  }
+
+  protected setCountryCode(countryCode: CountryCode): void {
+    // Only set the country code if it's different to avoid resetting the phone number
+    if (this.countryCode() !== countryCode) {
+      this.setCountryCode$.next(countryCode);
+    }
+  }
+
+  protected setPhoneNumber(phoneNumber: string | undefined): void {
+    this.setPhoneNumber$.next(phoneNumber);
   }
 }

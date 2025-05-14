@@ -3,16 +3,16 @@ import {
   Component,
   computed,
   input,
-  model,
+  linkedSignal,
   output,
 } from '@angular/core';
 import { outputFromObservable, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MaskitoDirective } from '@maskito/angular';
 import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { AsYouType, CountryCode } from 'libphonenumber-js';
+import { CountryCode } from 'libphonenumber-js';
 import metadata from 'libphonenumber-js/min/metadata';
-import { filter } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs';
 import { Status } from './hlm-phone-input.component';
 import {
   maskitoPhoneOptionsGeneratorExplicit,
@@ -24,12 +24,13 @@ import {
   imports: [FormsModule, MaskitoDirective, HlmInputDirective],
   template: `
     <input
+      #phone
       class="rounded-s-none rounded-e-lg"
       hlmInput
       [maskito]="maskitoOptions()"
       placeholder="Enter a phone number"
       type="tel"
-      [(ngModel)]="phoneNumber"
+      [(ngModel)]="linkedPhoneNumber"
       [disabled]="disabled()"
       (focus)="focusChange.emit()"
     />
@@ -38,40 +39,16 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HlmPhoneNumberComponent {
-  phoneNumber = model<string | undefined>();
+  phoneNumber = input.required<string | undefined>();
   status = input.required<Status | undefined>();
   countryCode = input.required<CountryCode | undefined>();
   disabled = input.required<boolean>();
   focusChange = output();
 
-  // TODO: Improve logic as its currently hard to follow
-  private derivedPhoneState = computed(() => {
-    const currentCountryCode = this.countryCode();
-    const phoneNumber = this.phoneNumber();
-    const formatter = new AsYouType();
+  protected linkedPhoneNumber = linkedSignal(() => this.phoneNumber());
 
-    formatter.input(phoneNumber || '');
-
-    const countryCode = formatter.getCountry();
-
-    // console.log({
-    //   currentCountryCode,
-    //   currentEval: phoneNumber?.startsWith('+') || phoneNumber === '',
-    //   newEval: !currentCountryCode && (phoneNumber?.startsWith('+') || !phoneNumber)
-    // });
-
-    if (phoneNumber?.startsWith('+') || phoneNumber === '') {
-      return {
-        status: 'explicit' as const,
-        countryCode,
-      };
-    }
-
-    return undefined;
-  });
-
-  derivedPhoneStateChange = outputFromObservable(
-    toObservable(this.derivedPhoneState).pipe(filter(Boolean)),
+  phoneNumberChange = outputFromObservable(
+    toObservable(this.linkedPhoneNumber).pipe(distinctUntilChanged()),
   );
 
   // TODO: Try to reflect changes when switching from implicit to explicit (copy paste of number)

@@ -14,7 +14,7 @@ import { HlmPhoneInputComponent } from './hlm-phone-input/hlm-phone-input.compon
       <form [formGroup]="form">
         <hlm-phone-input
           formControlName="phoneNumber"
-          initialCountryCode="US"
+          [initialCountryCode]="'PH'"
         />
       </form>
     </div>
@@ -25,7 +25,7 @@ export class AppComponent {
   private fb = inject(FormBuilder);
 
   protected form = this.fb.nonNullable.group({
-    phoneNumber: ['', [Validators.required]],
+    phoneNumber: ['+12125554567', [Validators.required]],
   });
 
   constructor() {

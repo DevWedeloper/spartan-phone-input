@@ -2,7 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  model,
+  input,
+  output,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSearch } from '@ng-icons/lucide';
@@ -18,7 +19,6 @@ import {
 } from 'libphonenumber-js';
 import { NgScrollbarModule } from 'ngx-scrollbar';
 import { HlmCountrySelectOptionComponent } from './hlm-country-select-option.component';
-import { State } from './hlm-phone-input.component';
 
 @Component({
   selector: 'hlm-country-list',
@@ -61,7 +61,7 @@ import { State } from './hlm-phone-input.component';
                   [countryCode]="country.countryCode"
                   [countryName]="country.countryName"
                   [countryCallingCode]="country.countryCallingCode"
-                  [selectedCountryCode]="state()?.countryCode"
+                  [selectedCountryCode]="countryCode()"
                 />
               </button>
             }
@@ -77,7 +77,8 @@ import { State } from './hlm-phone-input.component';
 export class HlmCountryListComponent {
   private readonly _brnDialogRef = inject(BrnDialogRef);
 
-  state = model<State | undefined>(undefined);
+  countryCode = input.required<CountryCode | undefined>();
+  countryCodeChange = output<CountryCode>();
 
   protected countries = getCountries()
     .map((country) => ({
@@ -93,12 +94,7 @@ export class HlmCountryListComponent {
     );
 
   protected onSelectedCountryCode(countryCode: CountryCode): void {
-    if (this.state()?.countryCode !== countryCode) {
-      this.state.set({
-        status: 'implicit',
-        countryCode,
-      });
-    }
+    this.countryCodeChange.emit(countryCode);
     this._brnDialogRef.close();
   }
 }
