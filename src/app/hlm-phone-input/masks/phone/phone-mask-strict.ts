@@ -24,7 +24,7 @@ export function maskitoPhoneStrictOptionsGenerator({
   metadata: MetadataJson;
   separator?: string;
   countryCode?: CountryCode;
-}): Required {
+}): Required<MaskitoOptions> {
   const code = getCountryCallingCode(countryIsoCode, metadata);
   const formatter = new AsYouType(countryIsoCode, metadata);
   const prefix = `+${code} `;
