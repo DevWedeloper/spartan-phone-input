@@ -24,8 +24,8 @@ import { HlmPopoverContentDirective } from '@spartan-ng/ui-popover-helm';
 import { CountryCode, getCountryCallingCode } from 'libphonenumber-js';
 import metadata from 'libphonenumber-js/min/metadata';
 import {
+  combineLatest,
   distinctUntilChanged,
-  filter,
   map,
   merge,
   scan,
@@ -38,15 +38,12 @@ import { HlmFlagComponent } from './hlm-flag.component';
 import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
 import { maskitoGetCountryFromNumber } from './masks';
 
-type Action = 'initial' | 'select' | 'type';
-
 export type Status = 'implicit' | 'explicit';
 
 export type State = {
   status: Status;
   countryCode?: CountryCode;
   phoneNumber?: string;
-  action?: Action;
 };
 
 @Component({
@@ -115,9 +112,13 @@ export type State = {
 })
 export class HlmPhoneInputComponent implements ControlValueAccessor {
   initialCountryCode = input<CountryCode>();
+  defaultCountryCode = input<CountryCode>();
 
   private initialCountryCode$ = toObservable(this.initialCountryCode).pipe(
-    filter(Boolean),
+    take(1),
+  );
+
+  private defaultCountryCode$ = toObservable(this.defaultCountryCode).pipe(
     take(1),
   );
 
@@ -126,18 +127,26 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
   private setCountryCode$ = new Subject<CountryCode | undefined>();
   private setPhoneNumber$ = new Subject<string | undefined>();
 
-  private countryCode$ = merge(
-    this.initialCountryCode$.pipe(
-      map((countryCode) => ({ countryCode, action: 'initial' as const })),
-    ),
-    this.setCountryCode$.pipe(
-      map((countryCode) => ({ countryCode, action: 'select' as const })),
-    ),
-  ).pipe(
-    map(({ countryCode, action }) => ({
+  private initialCountryCodeInputs$ = combineLatest([
+    this.initialCountryCode$,
+    this.defaultCountryCode$,
+  ]).pipe(
+    map(([initialCountryCode, defaultCountryCode]) => {
+      if (defaultCountryCode) {
+        return { countryCode: defaultCountryCode, mode: 'default' };
+      } else if (initialCountryCode) {
+        return { countryCode: initialCountryCode, mode: 'initial' };
+      } else {
+        return { countryCode: undefined, mode: undefined };
+      }
+    }),
+    share(),
+  );
+
+  private countryCode$ = this.setCountryCode$.pipe(
+    map((countryCode) => ({
       status: 'implicit' as const,
       countryCode,
-      action,
     })),
     distinctUntilChanged(
       (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
@@ -156,41 +165,54 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
           status: 'explicit' as const,
           countryCode,
           phoneNumber: phoneNumber as string | undefined,
-          action: 'type' as const,
         };
       }
 
-      return { phoneNumber, action: 'type' as const };
+      return { phoneNumber };
     }),
     distinctUntilChanged(
       (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
     ),
   );
 
-  private state$ = merge(this.countryCode$, this.phoneNumber$).pipe(
-    scan((state, partial) => ({ ...state, ...partial }), {
-      status: 'explicit',
-      countryCode: undefined,
-      phoneNumber: undefined,
-      action: 'initial',
-    } as State),
-    scan((previous, current) => {
-      // Prioritize country code of the initial form value over the initial country code input
-      if (current.action === 'initial' && previous.phoneNumber) {
-        return previous;
-      }
-
-      // Reset the phone number when a country code is selected
-      if (previous.status === 'explicit' && current.status === 'implicit') {
-        return {
-          status: current.status,
-          countryCode: current.countryCode,
-          phoneNumber: undefined,
+  private state$ = combineLatest([
+    this.initialCountryCodeInputs$,
+    merge(this.countryCode$, this.phoneNumber$),
+  ]).pipe(
+    scan(
+      (state, [initialInputs, partial]) => {
+        const updated = {
+          ...state,
+          ...partial,
+          index: state.index + 1,
         };
-      }
 
-      return current;
-    }),
+        // Prioritize country code of the initial form value over the initial country code input
+        if (
+          updated.index === 1 &&
+          !updated.countryCode &&
+          !updated.phoneNumber &&
+          initialInputs.countryCode
+        ) {
+          updated.countryCode = initialInputs.countryCode;
+          updated.status = 'implicit';
+        }
+
+        // Reset the phone number when a country code is selected
+        if (state.status === 'explicit' && partial.status === 'implicit') {
+          updated.phoneNumber = undefined;
+        }
+
+        return updated;
+      },
+      {
+        status: 'explicit',
+        countryCode: undefined,
+        phoneNumber: undefined,
+        index: 0,
+      } as State & { index: number },
+    ),
+    map(({ index, ...rest }) => rest),
     share(),
   );
 
