@@ -140,7 +140,6 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
         return { countryCode: undefined, mode: undefined };
       }
     }),
-    share(),
   );
 
   private countryCode$ = this.setCountryCode$.pipe(
@@ -148,9 +147,6 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
       status: 'implicit' as const,
       countryCode,
     })),
-    distinctUntilChanged(
-      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
-    ),
   );
 
   private phoneNumber$ = this.setPhoneNumber$.pipe(
@@ -164,15 +160,12 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
         return {
           status: 'explicit' as const,
           countryCode,
-          phoneNumber: phoneNumber as string | undefined,
+          phoneNumber: phoneNumber,
         };
       }
 
       return { phoneNumber };
     }),
-    distinctUntilChanged(
-      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
-    ),
   );
 
   private state$ = combineLatest([
