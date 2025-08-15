@@ -112,6 +112,21 @@ describe('HlmPhoneNumberComponent', () => {
 
       expect(cmpInstance.form.touched).toBe(true);
     });
+
+    it('converts non-string values to empty string', async () => {
+      const { fixture } = await setupWithoutInitialValue();
+      const form = fixture.componentInstance.form;
+
+      form.setValue({ phoneNumber: '+1234567890' });
+      expect(form.value.phoneNumber).toBe('+1234567890');
+
+      const invalidValues = ['', null, undefined, 123, {}, [], true, () => {}];
+
+      for (const val of invalidValues) {
+        form.patchValue({ phoneNumber: val } as any);
+        expect(form.value.phoneNumber).toBe('');
+      }
+    });
   });
 
   describe('formatting & validation', () => {

@@ -23,16 +23,7 @@ import { HlmIconDirective } from '@spartan-ng/ui-icon-helm';
 import { HlmPopoverContentDirective } from '@spartan-ng/ui-popover-helm';
 import { CountryCode, getCountryCallingCode } from 'libphonenumber-js';
 import metadata from 'libphonenumber-js/min/metadata';
-import {
-  combineLatest,
-  distinctUntilChanged,
-  map,
-  merge,
-  scan,
-  share,
-  Subject,
-  take,
-} from 'rxjs';
+import { combineLatest, map, merge, scan, share, Subject, take } from 'rxjs';
 import { HlmCountryListComponent } from './hlm-country-list.component';
 import { HlmFlagComponent } from './hlm-flag.component';
 import { HlmPhoneNumberComponent } from './hlm-phone-number.component';
@@ -209,25 +200,23 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
     share(),
   );
 
-  private parsedPhoneNumber$ = this.state$
-    .pipe(
-      map(({ status, countryCode, phoneNumber }) => {
-        const raw = phoneNumber || '';
+  private parsedPhoneNumber$ = this.state$.pipe(
+    map(({ status, countryCode, phoneNumber }) => {
+      const raw = phoneNumber || '';
 
-        // Remove all spaces (\s) and dashes (-)
-        const cleaned = raw.replace(/[\s-]/g, '');
+      // Remove all spaces (\s) and dashes (-)
+      const cleaned = raw.replace(/[\s-]/g, '');
 
-        if (status === 'implicit') {
-          const countryCallingCode = countryCode
-            ? getCountryCallingCode(countryCode)
-            : '';
-          return `+${countryCallingCode}${cleaned}`;
-        } else {
-          return cleaned;
-        }
-      }),
-    )
-    .pipe(distinctUntilChanged());
+      if (status === 'implicit') {
+        const countryCallingCode = countryCode
+          ? getCountryCallingCode(countryCode)
+          : '';
+        return `+${countryCallingCode}${cleaned}`;
+      } else {
+        return cleaned;
+      }
+    }),
+  );
 
   private state = toSignal(this.state$, {
     initialValue: {
@@ -250,8 +239,16 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
   private onChange: (phoneNumber: string | undefined) => void = () => {};
   protected onTouched: () => void = () => {};
 
-  writeValue(value: string | undefined): void {
-    this.setPhoneNumber(value);
+  writeValue(value: unknown): void {
+    const newValue = (() => {
+      if (typeof value === 'string') {
+        // Convert programmatically set empty string to undefined,
+        // since empty strings are used to clear input and trigger 'explicit' mode
+        return value === '' ? undefined : value;
+      }
+      return undefined;
+    })();
+    this.setPhoneNumber(newValue);
   }
 
   registerOnChange(fn: (phoneNumber: string | undefined) => void): void {
