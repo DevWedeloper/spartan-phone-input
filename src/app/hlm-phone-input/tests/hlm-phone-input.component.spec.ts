@@ -1,3 +1,5 @@
+import { Type } from '@angular/core';
+import { ComponentFixture } from '@angular/core/testing';
 import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import {
@@ -10,13 +12,21 @@ import {
   WithValidInitialValueTestComponent,
 } from './phone-input';
 
+type SetupResult<T> = {
+  user: ReturnType<typeof userEvent.setup>;
+  fixture: ComponentFixture<T>;
+  countryCodeTrigger: HTMLElement;
+  phoneInput: HTMLInputElement;
+  countryCodeTriggerFlag: HTMLElement;
+};
+
 describe('HlmPhoneNumberComponent', () => {
   beforeAll(() => {
     window.HTMLElement.prototype.scrollIntoView = jest.fn();
   });
 
-  const setupWithoutInitialValue = async () => {
-    const { fixture } = await render(WithoutInitialValueTestComponent);
+  const baseSetup = async <T>(component: Type<T>): Promise<SetupResult<T>> => {
+    const { fixture } = await render(component);
 
     return {
       user: userEvent.setup(),
@@ -27,83 +37,25 @@ describe('HlmPhoneNumberComponent', () => {
     };
   };
 
-  const setupWithValidInitialValue = async () => {
-    const { fixture } = await render(WithValidInitialValueTestComponent);
+  const setupWithoutInitialValue = () =>
+    baseSetup(WithoutInitialValueTestComponent);
 
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
+  const setupWithValidInitialValue = () =>
+    baseSetup(WithValidInitialValueTestComponent);
 
-  const setupWithValidInitialValueAndDefaultCountry = async () => {
-    const { fixture } = await render(
-      WithValidInitialValueAndDefaultCountryTestComponent,
-    );
+  const setupWithValidInitialValueAndDefaultCountry = () =>
+    baseSetup(WithValidInitialValueAndDefaultCountryTestComponent);
 
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
+  const setupDisabled = () => baseSetup(DisabledInputTestComponent);
 
-  const setupDisabled = async () => {
-    const { fixture } = await render(DisabledInputTestComponent);
+  const setupWithInitialCountryCode = () =>
+    baseSetup(WithInitialCountryCodeTestComponent);
 
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
+  const setupInitialValueWithDifferentCountry = () =>
+    baseSetup(InitialValueWithDifferentCountryTestComponent);
 
-  const setupWithInitialCountryCode = async () => {
-    const { fixture } = await render(WithInitialCountryCodeTestComponent);
-
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
-
-  const setupInitialValueWithDifferentCountry = async () => {
-    const { fixture } = await render(
-      InitialValueWithDifferentCountryTestComponent,
-    );
-
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
-
-  const setupInvalidInitialValueWithCountry = async () => {
-    const { fixture } = await render(
-      InvalidInitialValueWithCountryTestComponent,
-    );
-
-    return {
-      user: userEvent.setup(),
-      fixture,
-      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
-      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
-      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
-    };
-  };
+  const setupInvalidInitialValueWithCountry = () =>
+    baseSetup(InvalidInitialValueWithCountryTestComponent);
 
   describe('form', () => {
     it('marks form as touched when country selector is clicked', async () => {
