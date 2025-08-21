@@ -9,6 +9,7 @@ import {
   WithInitialCountryCodeTestComponent,
   WithoutInitialValueTestComponent,
   WithValidInitialValueAndDefaultCountryTestComponent,
+  WithValidInitialValueAndForcedCountryTestComponent,
   WithValidInitialValueTestComponent,
 } from './phone-input';
 
@@ -45,6 +46,9 @@ describe('HlmPhoneNumberComponent', () => {
 
   const setupWithValidInitialValueAndDefaultCountry = () =>
     baseSetup(WithValidInitialValueAndDefaultCountryTestComponent);
+
+  const setupWithValidInitialValueAndForcedCountry = () =>
+    baseSetup(WithValidInitialValueAndForcedCountryTestComponent);
 
   const setupDisabled = () => baseSetup(DisabledInputTestComponent);
 
@@ -231,6 +235,20 @@ describe('HlmPhoneNumberComponent', () => {
       expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
       expect(cmpInstance.form.value.phoneNumber).toBe('+1');
     });
+
+    it('keeps forced flag when input is cleared after initial number', async () => {
+      const { user, fixture, phoneInput, countryCodeTrigger } =
+        await setupWithValidInitialValueAndForcedCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+
+      await user.clear(phoneInput);
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
   });
 
   describe('country selection via dropdown', () => {
@@ -349,7 +367,22 @@ describe('HlmPhoneNumberComponent', () => {
       expect(phoneInput).toBeDisabled();
     });
 
-    describe('default country code', () => {});
+    it('disables country selector when a forced country code is set', async () => {
+      const { countryCodeTrigger, phoneInput } =
+        await setupWithValidInitialValueAndForcedCountry();
+
+      expect(countryCodeTrigger).toBeDisabled();
+      expect(phoneInput).toBeEnabled();
+    });
+
+    it('removes initial phone number when forced country code is set', async () => {
+      const { fixture, countryCodeTrigger } =
+        await setupWithValidInitialValueAndForcedCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
   });
 
   describe('two-action flows', () => {

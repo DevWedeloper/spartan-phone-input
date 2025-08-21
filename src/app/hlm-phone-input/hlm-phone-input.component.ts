@@ -70,7 +70,7 @@ export type State = {
         brnPopoverTrigger
         hlmBtn
         class="flex gap-1 rounded-s-lg rounded-e-none border-r-0 px-3 focus:z-10"
-        [disabled]="disabled()"
+        [disabled]="disabled() || forcedCountryCode() !== undefined"
         type="button"
         (click)="onTouched()"
       >
@@ -104,12 +104,17 @@ export type State = {
 export class HlmPhoneInputComponent implements ControlValueAccessor {
   initialCountryCode = input<CountryCode>();
   defaultCountryCode = input<CountryCode>();
+  forcedCountryCode = input<CountryCode>();
 
   private initialCountryCode$ = toObservable(this.initialCountryCode).pipe(
     take(1),
   );
 
   private defaultCountryCode$ = toObservable(this.defaultCountryCode).pipe(
+    take(1),
+  );
+
+  private forcedCountryCode$ = toObservable(this.forcedCountryCode).pipe(
     take(1),
   );
 
@@ -121,9 +126,12 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
   private initialCountryCodeInputs$ = combineLatest([
     this.initialCountryCode$,
     this.defaultCountryCode$,
+    this.forcedCountryCode$,
   ]).pipe(
-    map(([initialCountryCode, defaultCountryCode]) => {
-      if (defaultCountryCode) {
+    map(([initialCountryCode, defaultCountryCode, forcedCountryCode]) => {
+      if (forcedCountryCode) {
+        return { countryCode: forcedCountryCode, mode: 'forced' };
+      } else if (defaultCountryCode) {
         return { countryCode: defaultCountryCode, mode: 'default' };
       } else if (initialCountryCode) {
         return { countryCode: initialCountryCode, mode: 'initial' };
@@ -182,12 +190,21 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
           updated.status = 'implicit';
         }
 
+        if (updated.index === 1 && initialInputs.mode === 'forced') {
+          updated.phoneNumber = undefined;
+        }
+
         // Reset the phone number when a country code is selected
         if (state.status === 'explicit' && partial.status === 'implicit') {
           updated.phoneNumber = undefined;
         }
 
         if (initialInputs.mode === 'default' && !updated.phoneNumber) {
+          updated.countryCode = initialInputs.countryCode;
+          updated.status = 'implicit';
+        }
+
+        if (initialInputs.mode === 'forced') {
           updated.countryCode = initialInputs.countryCode;
           updated.status = 'implicit';
         }
