@@ -6,7 +6,9 @@ import {
   DisabledInputTestComponent,
   InitialValueWithDifferentCountryTestComponent,
   InvalidInitialValueWithCountryTestComponent,
+  WithInitialAndDefaultCountryTestComponent,
   WithInitialCountryCodeTestComponent,
+  WithInitialDefaultAndForcedCountryTestComponent,
   WithoutInitialValueTestComponent,
   WithValidInitialValueAndDefaultCountryTestComponent,
   WithValidInitialValueAndForcedCountryTestComponent,
@@ -49,6 +51,12 @@ describe('HlmPhoneNumberComponent', () => {
 
   const setupWithValidInitialValueAndForcedCountry = () =>
     baseSetup(WithValidInitialValueAndForcedCountryTestComponent);
+
+  const setupWithInitialAndDefaultCountry = () =>
+    baseSetup(WithInitialAndDefaultCountryTestComponent);
+
+  const setupWithInitialDefaultAndForcedCountry = () =>
+    baseSetup(WithInitialDefaultAndForcedCountryTestComponent);
 
   const setupDisabled = () => baseSetup(DisabledInputTestComponent);
 
@@ -378,6 +386,24 @@ describe('HlmPhoneNumberComponent', () => {
     it('removes initial phone number when forced country code is set', async () => {
       const { fixture, countryCodeTrigger } =
         await setupWithValidInitialValueAndForcedCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
+
+    it('prioritizes default country code over initial country code', async () => {
+      const { fixture, countryCodeTrigger } =
+        await setupWithInitialAndDefaultCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
+
+    it('prioritizes forced country code over default country code', async () => {
+      const { fixture, countryCodeTrigger } =
+        await setupWithInitialDefaultAndForcedCountry();
       const cmpInstance = fixture.componentInstance;
 
       expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();

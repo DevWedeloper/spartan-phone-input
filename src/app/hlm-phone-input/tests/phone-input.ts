@@ -70,6 +70,43 @@ export class WithValidInitialValueAndForcedCountryTestComponent {
   imports: [ReactiveFormsModule, HlmPhoneInputComponent],
   template: `
     <form [formGroup]="form">
+      <hlm-phone-input
+        formControlName="phoneNumber"
+        [initialCountryCode]="'AF'"
+        [defaultCountryCode]="'US'"
+      />
+    </form>
+  `,
+})
+export class WithInitialAndDefaultCountryTestComponent {
+  form = new FormGroup({
+    phoneNumber: new FormControl<string | undefined>(undefined),
+  });
+}
+
+@Component({
+  imports: [ReactiveFormsModule, HlmPhoneInputComponent],
+  template: `
+    <form [formGroup]="form">
+      <hlm-phone-input
+        formControlName="phoneNumber"
+        [initialCountryCode]="'US'"
+        [defaultCountryCode]="'AF'"
+        [forcedCountryCode]="'US'"
+      />
+    </form>
+  `,
+})
+export class WithInitialDefaultAndForcedCountryTestComponent {
+  form = new FormGroup({
+    phoneNumber: new FormControl<string | undefined>(undefined),
+  });
+}
+
+@Component({
+  imports: [ReactiveFormsModule, HlmPhoneInputComponent],
+  template: `
+    <form [formGroup]="form">
       <hlm-phone-input formControlName="phoneNumber" />
     </form>
   `,
