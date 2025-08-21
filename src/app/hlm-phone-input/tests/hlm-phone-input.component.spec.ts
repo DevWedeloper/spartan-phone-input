@@ -6,6 +6,7 @@ import {
   InvalidInitialValueWithCountryTestComponent,
   WithInitialCountryCodeTestComponent,
   WithoutInitialValueTestComponent,
+  WithValidInitialValueAndDefaultCountryTestComponent,
   WithValidInitialValueTestComponent,
 } from './phone-input';
 
@@ -28,6 +29,20 @@ describe('HlmPhoneNumberComponent', () => {
 
   const setupWithValidInitialValue = async () => {
     const { fixture } = await render(WithValidInitialValueTestComponent);
+
+    return {
+      user: userEvent.setup(),
+      fixture,
+      countryCodeTrigger: screen.getByTestId('country-code-trigger'),
+      phoneInput: screen.getByPlaceholderText('Enter a phone number'),
+      countryCodeTriggerFlag: screen.getByTestId('country-code-trigger-flag'),
+    };
+  };
+
+  const setupWithValidInitialValueAndDefaultCountry = async () => {
+    const { fixture } = await render(
+      WithValidInitialValueAndDefaultCountryTestComponent,
+    );
 
     return {
       user: userEvent.setup(),
@@ -250,6 +265,20 @@ describe('HlmPhoneNumberComponent', () => {
       expect(countryCodeTriggerFlag.querySelector('svg')).toBeNull();
       expect(cmpInstance.form.value.phoneNumber).toBeFalsy();
     });
+
+    it('keeps default flag when input is cleared after initial number', async () => {
+      const { user, fixture, phoneInput, countryCodeTrigger } =
+        await setupWithValidInitialValueAndDefaultCountry();
+      const cmpInstance = fixture.componentInstance;
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+12125554567');
+
+      await user.clear(phoneInput);
+
+      expect(within(countryCodeTrigger).getByTitle('US')).toBeInTheDocument();
+      expect(cmpInstance.form.value.phoneNumber).toBe('+1');
+    });
   });
 
   describe('country selection via dropdown', () => {
@@ -367,6 +396,8 @@ describe('HlmPhoneNumberComponent', () => {
       expect(countryCodeTrigger).toBeDisabled();
       expect(phoneInput).toBeDisabled();
     });
+
+    describe('default country code', () => {});
   });
 
   describe('two-action flows', () => {

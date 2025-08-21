@@ -187,6 +187,11 @@ export class HlmPhoneInputComponent implements ControlValueAccessor {
           updated.phoneNumber = undefined;
         }
 
+        if (initialInputs.mode === 'default' && !updated.phoneNumber) {
+          updated.countryCode = initialInputs.countryCode;
+          updated.status = 'implicit';
+        }
+
         return updated;
       },
       {
